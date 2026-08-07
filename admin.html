@@ -91,24 +91,26 @@
 
 <div class="wrap">
 
-  <!-- ============ ログイン ============ -->
+  <!-- ============ 合言葉の確認 ============ -->
+  <!-- パスワードは使いません。URL の ?k=... が鍵そのものです。 -->
   <div class="card" id="authCard">
-    <h2>ログイン</h2>
-    <label for="email">メールアドレス</label>
-    <input type="email" id="email" autocomplete="username" inputmode="email" placeholder="you@example.com">
-    <label for="pw">パスワード</label>
-    <input type="password" id="pw" autocomplete="current-password" placeholder="パスワード">
-    <button id="btnLogin">ログインする</button>
+    <h2>確認しています</h2>
     <div class="msg" id="authMsg"></div>
 
-    <details style="margin-top:18px">
-      <summary>はじめて使うとき（アカウントを作る）</summary>
-      <p class="hint" style="margin-top:8px">
-        いちばん最初の1回だけ、上のメールとパスワードを入れてから下のボタンを押してください。<br>
-        パスワードは6文字以上。忘れないものにしてください。
+    <div id="keyHelp" style="display:none">
+      <p class="hint" style="margin-top:10px">
+        この画面は、お父さん専用の合言葉がついたURLからだけ開けます。<br>
+        ホーム画面に追加したアイコンから開くと確実です。
       </p>
-      <button class="sub" id="btnSignup">この内容でアカウントを作る</button>
-    </details>
+      <label for="keyIn">合言葉を手で入れる</label>
+      <input type="text" id="keyIn" autocomplete="off" autocapitalize="off"
+             spellcheck="false" placeholder="Supabase で発行された admin_token">
+      <button id="btnKey">この合言葉で開く</button>
+      <p class="hint" style="margin-top:10px">
+        合言葉が分からなくなったら、Supabase の SQL Editor で<br>
+        <code>select admin_token from maps;</code> と打つと出てきます。
+      </p>
+    </div>
   </div>
 
   <!-- ============ 本体 ============ -->
@@ -210,7 +212,7 @@
       <div class="msg" id="copyMsg"></div>
     </div>
 
-    <button class="sub" id="btnLogout" style="margin-top:18px">ログアウト</button>
+    <button class="sub" id="btnLogout" style="margin-top:18px">この端末から合言葉を消す</button>
   </div>
 
   <p class="foot">たびクエスト｜かぞくの冒険マップ</p>
@@ -228,8 +230,9 @@
   };
 
   var $ = function(id){ return document.getElementById(id); };
+  // ログインは使いません。写真をアップロードするためだけに使う接続です。
   var sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {
-    auth: { persistSession:true, autoRefreshToken:true, storageKey:'sado-quest-auth' }
+    auth: { persistSession:false, autoRefreshToken:false }
   });
 
   var appMap = null;     // マップ（＝共有URL）1件
@@ -294,58 +297,114 @@
     $('cmtCount').textContent = $('cmt').value.length;
   });
 
-  // ================= ログイン =================
-  $('btnLogin').addEventListener('click', function(){
-    var em = $('email').value.trim(), pw = $('pw').value;
-    if(!em || !pw){ msg('authMsg','ng','メールアドレスとパスワードを入れてください。'); return; }
-    $('btnLogin').disabled = true;
-    msg('authMsg','info','ログインしています…');
-    sb.auth.signInWithPassword({ email:em, password:pw }).then(function(res){
-      $('btnLogin').disabled = false;
-      if(res.error){
-        msg('authMsg','ng','ログインできませんでした。<br>メールアドレスかパスワードをご確認ください。<br>' +
-                           '<span style="font-size:14px">（' + esc(res.error.message) + '）</span>');
-        return;
-      }
-      hide('authMsg');
-      onLoggedIn();
-    });
-  });
+  // ================= 合言葉（パスワードの代わり） =================
+  //
+  //  この画面はログインしません。URL の ?k=... が鍵そのものです。
+  //  合言葉はデータベースの中でだけ照合され、
+  //  正しくなければどの操作も例外で弾かれます。
+  //
+  //  合言葉は画面にもソースにも出しません。
+  //  一度開いたら端末に覚えさせて、次からはURLなしでも開けるようにします。
+  //
+  var KEY_STORE = 'sado-quest-key';
+  var adminKey = null;
 
-  $('btnSignup').addEventListener('click', function(){
-    var em = $('email').value.trim(), pw = $('pw').value;
-    if(!em || pw.length < 6){
-      msg('authMsg','ng','メールアドレスと、6文字以上のパスワードを入れてください。'); return;
-    }
-    $('btnSignup').disabled = true;
-    msg('authMsg','info','アカウントを作っています…');
-    sb.auth.signUp({ email:em, password:pw }).then(function(res){
-      $('btnSignup').disabled = false;
-      if(res.error){
-        msg('authMsg','ng','作れませんでした。<br><span style="font-size:14px">（' +
-                            esc(res.error.message) + '）</span>');
-        return;
-      }
-      if(res.data && res.data.session){
-        msg('authMsg','ok','アカウントを作りました。そのまま使えます。');
-        onLoggedIn();
-      } else {
-        msg('authMsg','ok','アカウントを作りました。<br>メールに確認リンクが届いていたら、それを押してから「ログインする」を押してください。');
-      }
+  function readKey(){
+    var m = location.search.match(/[?&]k=([^&]+)/);
+    if(m) return decodeURIComponent(m[1]);
+    try{ return localStorage.getItem(KEY_STORE); }catch(e){ return null; }
+  }
+
+  // 合言葉つきの窓口を呼びます。
+  // fetch を直接使うのは、Supabaseのライブラリだと
+  // エラーの中身が分かりにくくなるためです。
+  function rpc(fn, args){
+    return fetch(CFG.SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': CFG.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + CFG.SUPABASE_KEY
+      },
+      body: JSON.stringify(args)
+    }).then(function(r){
+      return r.text().then(function(t){
+        var body = null;
+        try{ body = t ? JSON.parse(t) : null; }catch(e){ body = null; }
+        if(!r.ok){
+          var detail = (body && (body.message || body.hint)) || ('サーバーから ' + r.status);
+          var err = new Error(detail);
+          err.status = r.status;
+          throw err;
+        }
+        return body;
+      });
     });
+  }
+
+  // URLから合言葉を消して、履歴や画面共有に残らないようにします
+  function scrubUrl(){
+    if(location.search.indexOf('k=') === -1) return;
+    try{
+      history.replaceState(null, '', location.pathname);
+    }catch(e){}
+  }
+
+  function start(){
+    var k = readKey();
+    if(!k){
+      msg('authMsg','ng','合言葉が見つかりません。');
+      $('keyHelp').style.display = 'block';
+      $('authCard').querySelector('h2').textContent = '合言葉が要ります';
+      return;
+    }
+    msg('authMsg','info','確認しています…');
+    adminKey = k;
+
+    rpc('adm_map', { p_key: k })
+      .then(function(rows){
+        if(!rows || !rows.length) throw new Error('合言葉がちがいます');
+        try{ localStorage.setItem(KEY_STORE, k); }catch(e){}
+        scrubUrl();
+        appMap = rows[0];
+        setupShareUrl(appMap.share_token);
+        $('authCard').style.display = 'none';
+        $('appArea').style.display = 'block';
+        $('ntDate').value = todayJST();
+        loadTrips();
+        loadDraft();
+      })
+      .catch(function(e){
+        adminKey = null;
+        try{ localStorage.removeItem(KEY_STORE); }catch(e2){}
+        $('keyHelp').style.display = 'block';
+        $('authCard').querySelector('h2').textContent = '開けませんでした';
+        if(/Failed to fetch/i.test(e.message)){
+          msg('authMsg','ng','サーバーにつながりませんでした。<br>' +
+              'Supabase が一時停止していないかご確認ください。<br>' +
+              '<span style="font-size:14px">（詳細：' + esc(e.message) + '）</span>');
+        } else if(e.status === 404){
+          msg('authMsg','ng','この画面に必要な準備がまだ終わっていません。<br>' +
+              'Supabase で migration-nopass.sql を実行してください。');
+        } else {
+          msg('authMsg','ng','合言葉がちがうようです。<br>' +
+              '<span style="font-size:14px">（詳細：' + esc(e.message) + '）</span>');
+        }
+      });
+  }
+
+  $('btnKey').addEventListener('click', function(){
+    var k = $('keyIn').value.trim();
+    if(k.length < 16){ msg('authMsg','ng','合言葉が短すぎます。'); return; }
+    try{ localStorage.setItem(KEY_STORE, k); }catch(e){}
+    location.replace(location.pathname);
   });
 
   $('btnLogout').addEventListener('click', function(){
-    sb.auth.signOut().then(function(){ location.reload(); });
+    if(!window.confirm('この端末から合言葉を消します。\n次に開くときは、合言葉つきURLが要ります。よろしいですか？')) return;
+    try{ localStorage.removeItem(KEY_STORE); }catch(e){}
+    location.replace(location.pathname);
   });
-
-  function onLoggedIn(){
-    $('authCard').style.display = 'none';
-    $('appArea').style.display = 'block';
-    $('ntDate').value = todayJST();
-    loadMap();
-    loadDraft();
-  }
 
   // ================= マップと旅行の読み込み =================
 
@@ -369,30 +428,10 @@
     };
   }
 
-  function loadMap(){
-    sb.from('maps').select('id,title,subtitle,share_token')
-      .order('created_at', { ascending:true }).limit(1)
-      .then(function(res){
-        if(res.error || !res.data || !res.data.length){
-          msg('tripMsg','ng','マップのデータが見つかりませんでした。<br>' +
-                             'Supabase で migration-japan.sql を実行したかご確認ください。');
-          return;
-        }
-        appMap = res.data[0];
-        setupShareUrl(appMap.share_token);
-        loadTrips();
-      });
-  }
-
   function loadTrips(keepId){
-    sb.from('trips').select('id,title,subtitle,area_name,status,started_at')
-      .eq('map_id', appMap.id)
-      .order('created_at', { ascending:false })
-      .then(function(res){
-        if(res.error){
-          msg('tripMsg','ng','旅行の一覧を読み込めませんでした：' + esc(res.error.message)); return;
-        }
-        trips = res.data || [];
+    rpc('adm_trips', { p_key: adminKey })
+      .then(function(rows){
+        trips = rows || [];
         if(!trips.length){
           trip = null;
           $('tripSel').innerHTML = '';
@@ -414,6 +453,9 @@
         }).join('');
 
         showTrip();
+      })
+      .catch(function(e){
+        msg('tripMsg','ng','旅行の一覧を読み込めませんでした：' + esc(e.message));
       });
   }
 
@@ -449,25 +491,16 @@
     $('btnNewTrip').disabled = true;
     msg('newTripMsg','info','旅行を作っています…');
 
-    // いま冒険中の旅行があれば、先に「終わり」にします
-    sb.from('trips').update({ status:'completed', ended_at:new Date().toISOString() })
-      .eq('map_id', appMap.id).eq('status','active')
-      .then(function(){
-        return sb.from('trips').insert({
-          map_id: appMap.id,
-          title: title,
-          subtitle: $('ntSub').value.trim() || null,
-          area_name: $('ntArea').value.trim() || null,
-          status: 'active',
-          started_at: d + 'T00:00:00+09:00'
-        }).select('id');
-      })
-      .then(function(res){
+    // いま冒険中の旅行を「終わり」にする処理も、この窓口の中でまとめて行われます
+    rpc('adm_new_trip', {
+      p_key:      adminKey,
+      p_title:    title,
+      p_subtitle: $('ntSub').value.trim() || null,
+      p_area:     $('ntArea').value.trim() || null,
+      p_started:  d
+    })
+      .then(function(newId){
         $('btnNewTrip').disabled = false;
-        if(res.error){
-          msg('newTripMsg','ng','作れませんでした：' + esc(res.error.message)); return;
-        }
-        var newId = res.data && res.data[0] ? res.data[0].id : null;
         msg('newTripMsg','ok','「' + esc(title) + '」を始めました。写真はこの旅行に入ります。');
         $('ntTitle').value = ''; $('ntArea').value = ''; $('ntSub').value = '';
         loadTrips(newId);
@@ -481,16 +514,17 @@
   function setStatus(st){
     if(!trip) return;
     msg('tripMsg','info','変えています…');
-    var patch = { status: st };
-    if(st === 'completed') patch.ended_at = new Date().toISOString();
-    if(st === 'active')    patch.ended_at = null;
-    sb.from('trips').update(patch).eq('id', trip.id).then(function(res){
-      if(res.error){ msg('tripMsg','ng','変えられませんでした：' + esc(res.error.message)); return; }
-      msg('tripMsg','ok', st === 'completed'
-        ? 'この旅行を「終わり」にしました。家族の画面では日本地図が最初に出るようになります。'
-        : 'この旅行を「冒険中」にしました。家族の画面ではこの旅行がすぐ開きます。');
-      loadTrips(trip.id);
-    });
+    var id = trip.id;
+    rpc('adm_set_status', { p_key: adminKey, p_trip_id: id, p_status: st })
+      .then(function(){
+        msg('tripMsg','ok', st === 'completed'
+          ? 'この旅行を「終わり」にしました。家族の画面では日本地図が最初に出るようになります。'
+          : 'この旅行を「冒険中」にしました。家族の画面ではこの旅行がすぐ開きます。');
+        loadTrips(id);
+      })
+      .catch(function(e){
+        msg('tripMsg','ng','変えられませんでした：' + esc(e.message));
+      });
   }
   $('btnFinish').addEventListener('click', function(){ setStatus('completed'); });
   $('btnResume').addEventListener('click', function(){ setStatus('active'); });
@@ -588,13 +622,36 @@
   });
 
   // ================= 投稿 =================
-  function upload(blob, name){
-    return sb.storage.from('photos').upload(name, blob, {
-      contentType:'image/jpeg', cacheControl:'31536000', upsert:false
-    }).then(function(res){
-      if(res.error) throw new Error('写真の保存に失敗：' + res.error.message);
-      return CFG.SUPABASE_URL + '/storage/v1/object/public/photos/' + name;
+  //
+  //  写真の保存だけは、合言葉を確かめる専用の窓口（photo-upload）を通します。
+  //  そこで「その場かぎりのアップロード券」を2枚もらってから送ります。
+  //  こうすると、写真のURLに合言葉が残りません。
+  //
+  function getTickets(tripId, base){
+    return fetch(CFG.SUPABASE_URL + '/functions/v1/photo-upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CFG.SUPABASE_KEY
+      },
+      body: JSON.stringify({ k: adminKey, trip_id: tripId, base: base })
+    }).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(b){
+        if(!r.ok) throw new Error((b && b.error) || ('写真の準備に失敗（' + r.status + '）'));
+        return b;
+      });
     });
+  }
+
+  function putPhoto(ticket, blob){
+    return sb.storage.from('photos')
+      .uploadToSignedUrl(ticket.path, ticket.token, blob, {
+        contentType: 'image/jpeg', cacheControl: '31536000'
+      })
+      .then(function(res){
+        if(res.error) throw new Error('写真の保存に失敗：' + res.error.message);
+        return ticket.url;
+      });
   }
 
   $('btnPost').addEventListener('click', function(){
@@ -615,38 +672,37 @@
     msg('postMsg','info','① 写真を送っています…');
 
     var target = trip;
-    var base = target.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    var base = Date.now() + '-' + Math.random().toString(36).slice(2,8);
     var fullUrl, thumbUrl;
 
-    upload(picked.full, base + '.jpg')
-      .then(function(u){
-        fullUrl = u;
-        msg('postMsg','info','② 小さい写真を送っています…');
-        return upload(picked.thumb, base + '_s.jpg');
+    getTickets(target.id, base)
+      .then(function(tk){
+        return putPhoto(tk.full, picked.full).then(function(u){
+          fullUrl = u;
+          msg('postMsg','info','② 小さい写真を送っています…');
+          return putPhoto(tk.thumb, picked.thumb);
+        });
       })
       .then(function(u){
         thumbUrl = u;
         msg('postMsg','info','③ 記録を書き込んでいます…');
-        return sb.from('posts').insert({
-          trip_id: target.id,
-          sequence_number: 0,           // 0 を入れると自動で連番が付きます
-          image_url: fullUrl,
-          thumbnail_url: thumbUrl,
-          comment: $('cmt').value.trim() || null,
-          place_name: $('place').value.trim() || null,
-          latitude: lat,
-          longitude: lng,
-          location_accuracy: window.__acc || null,
-          posted_at: new Date().toISOString()
-        }).select('sequence_number');
+        return rpc('adm_add_post', {
+          p_key:       adminKey,
+          p_trip_id:   target.id,
+          p_image_url: fullUrl,
+          p_thumb_url: thumbUrl,
+          p_lat:       lat,
+          p_lng:       lng,
+          p_place:     $('place').value.trim() || null,
+          p_comment:   $('cmt').value.trim() || null,
+          p_accuracy:  window.__acc || null
+        });
       })
-      .then(function(res){
-        if(res.error) throw new Error(res.error.message);
-        var n = res.data && res.data[0] ? res.data[0].sequence_number : '';
+      .then(function(n){
         sending = false;
         $('btnPost').disabled = false;
         $('btnPost').textContent = 'この内容で投稿する';
-        msg('postMsg','ok','投稿できました！　「' + esc(target.title) + '」の ' + n +
+        msg('postMsg','ok','投稿できました！　「' + esc(target.title) + '」の ' + esc(String(n)) +
                            '番目の記録として、家族の地図に出ています。');
         // 成功したときだけ入力を消します
         $('file').value = ''; $('preview').style.display='none';
@@ -679,13 +735,10 @@
   function loadList(){
     if(!trip){ msg('listMsg','ng','旅行が選ばれていません。'); return; }
     msg('listMsg','info','読み込んでいます…');
-    sb.from('posts')
-      .select('id,sequence_number,thumbnail_url,image_url,place_name,comment,posted_at')
-      .eq('trip_id', trip.id).order('sequence_number', { ascending:false })
-      .then(function(res){
-        if(res.error){ msg('listMsg','ng','読み込めませんでした：' + esc(res.error.message)); return; }
+    rpc('adm_posts', { p_key: adminKey, p_trip_id: trip.id })
+      .then(function(data){
         hide('listMsg');
-        var rows = res.data || [];
+        var rows = data || [];
         if(!rows.length){ $('list').innerHTML = '<p class="hint">この旅行には、まだ投稿がありません。</p>'; return; }
         $('list').innerHTML = rows.map(function(p){
           return '<div class="item" data-id="' + p.id + '">' +
@@ -710,6 +763,9 @@
             else doEdit(row);
           });
         });
+      })
+      .catch(function(e){
+        msg('listMsg','ng','読み込めませんでした：' + esc(e.message));
       });
   }
 
@@ -720,30 +776,34 @@
     if(cmt === null) return;
     if(cmt.length > 150){ msg('listMsg','ng','ひとことは150文字までです。'); return; }
     msg('listMsg','info','直しています…');
-    sb.from('posts').update({
-      place_name: place.trim() || null,
-      comment: cmt.trim() || null
-    }).eq('id', row.id).then(function(res){
-      if(res.error){ msg('listMsg','ng','直せませんでした：' + esc(res.error.message)); return; }
+    rpc('adm_edit_post', {
+      p_key:     adminKey,
+      p_post_id: row.id,
+      p_place:   place.trim() || null,
+      p_comment: cmt.trim() || null
+    }).then(function(){
       msg('listMsg','ok','直しました。');
       loadList();
+    }).catch(function(e){
+      msg('listMsg','ng','直せませんでした：' + esc(e.message));
     });
   }
 
   function doDelete(row){
     if(!window.confirm(row.sequence_number + '番の投稿を消します。よろしいですか？\nこの操作は取り消せません。')) return;
     msg('listMsg','info','消しています…');
-    sb.from('posts').delete().eq('id', row.id).then(function(res){
-      if(res.error){ msg('listMsg','ng','消せませんでした：' + esc(res.error.message)); return; }
-      msg('listMsg','ok','消しました。');
-      loadList();
-    });
+    rpc('adm_del_post', { p_key: adminKey, p_post_id: row.id })
+      .then(function(){
+        msg('listMsg','ok','消しました。');
+        loadList();
+      })
+      .catch(function(e){
+        msg('listMsg','ng','消せませんでした：' + esc(e.message));
+      });
   }
 
   // ================= 起動時 =================
-  sb.auth.getSession().then(function(res){
-    if(res.data && res.data.session) onLoggedIn();
-  });
+  start();
 })();
 </script>
 </body>
