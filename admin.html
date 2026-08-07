@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#1e5f74">
-<title>佐渡クエスト｜投稿</title>
+<title>たびクエスト｜投稿</title>
 <style>
   :root{
     --bg:#fbf6ea; --card:#fff; --ink:#2b2118; --sub:#6b5b4b;
@@ -28,10 +28,12 @@
   .wrap{max-width:640px;margin:0 auto;padding:0 14px 60px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
         padding:16px;margin-top:16px;box-shadow:0 2px 8px rgba(80,60,30,.06);}
+  .card.now{border:2px solid var(--sea);background:#f6fbfc;}
   h2{font-size:19px;margin:0 0 12px;}
   label{display:block;font-weight:700;font-size:16px;margin:14px 0 6px;}
   .hint{font-size:14px;color:var(--sub);font-weight:400;margin-top:2px;}
-  input[type=text],input[type=email],input[type=password],input[type=number],textarea,select{
+  input[type=text],input[type=email],input[type=password],input[type=number],
+  input[type=date],textarea,select{
     width:100%;font-size:17px;padding:12px;min-height:48px;
     border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
     font-family:inherit;
@@ -72,13 +74,18 @@
   .url{font-size:14px;word-break:break-all;background:#f3ece0;border-radius:8px;padding:10px;
        border:1px solid var(--line);}
   .foot{font-size:14px;color:var(--sub);text-align:center;margin-top:22px;}
-  .steps{font-size:15px;color:var(--sub);margin:0 0 8px;padding-left:1.2em;}
+  .tripnow{font-size:20px;font-weight:800;word-break:break-word;}
+  .tripsub{font-size:14px;color:var(--sub);}
+  .chip{display:inline-block;font-size:12px;font-weight:800;border-radius:6px;
+        padding:1px 8px;margin-left:6px;vertical-align:2px;color:#fff;background:var(--now);}
+  .chip.done{background:var(--sub);}
+  summary{font-size:16px;font-weight:700;cursor:pointer;min-height:44px;line-height:44px;}
 </style>
 </head>
 <body>
 
 <header>
-  <p class="t">佐渡クエスト</p>
+  <p class="t">たびクエスト</p>
   <p class="s">投稿・管理画面（お父さん専用）</p>
 </header>
 
@@ -95,9 +102,7 @@
     <div class="msg" id="authMsg"></div>
 
     <details style="margin-top:18px">
-      <summary style="font-size:16px;font-weight:700;cursor:pointer;min-height:44px;line-height:44px">
-        はじめて使うとき（アカウントを作る）
-      </summary>
+      <summary>はじめて使うとき（アカウントを作る）</summary>
       <p class="hint" style="margin-top:8px">
         いちばん最初の1回だけ、上のメールとパスワードを入れてから下のボタンを押してください。<br>
         パスワードは6文字以上。忘れないものにしてください。
@@ -108,6 +113,39 @@
 
   <!-- ============ 本体 ============ -->
   <div id="appArea" style="display:none">
+
+    <!-- ---- いまの旅行 ---- -->
+    <div class="card now" id="tripCard">
+      <h2>いまの旅行</h2>
+      <div class="tripnow" id="tripName">—</div>
+      <div class="tripsub" id="tripWhere"></div>
+
+      <label for="tripSel">旅行を切りかえる
+        <span class="hint">写真は、ここで選んだ旅行に入ります。</span>
+      </label>
+      <select id="tripSel"></select>
+      <button class="sub" id="btnFinish" style="display:none">この旅行を「終わり」にする</button>
+      <button class="sub" id="btnResume" style="display:none">この旅行をもう一度「冒険中」にする</button>
+      <div class="msg" id="tripMsg"></div>
+
+      <details style="margin-top:16px">
+        <summary>＋ 新しい旅行を始める</summary>
+        <p class="hint" style="margin-top:8px">
+          旅行に出るたび、ここで1つ作ってください。<br>
+          新しく作ると、いま冒険中の旅行は自動で「終わり」になります。家族に送るURLは今までと同じままです。
+        </p>
+        <label for="ntTitle">旅行の名前</label>
+        <input type="text" id="ntTitle" maxlength="40" placeholder="例：北海道クエスト">
+        <label for="ntArea">どのへん？（任意）</label>
+        <input type="text" id="ntArea" maxlength="40" placeholder="例：北海道・道東">
+        <label for="ntSub">ひとこと副題（任意）</label>
+        <input type="text" id="ntSub" maxlength="60" placeholder="例：父と息子の流氷さがし">
+        <label for="ntDate">出発の日</label>
+        <input type="date" id="ntDate">
+        <button id="btnNewTrip">この旅行を始める</button>
+        <div class="msg" id="newTripMsg"></div>
+      </details>
+    </div>
 
     <div class="tabs">
       <button id="tabPost" class="on">写真を投稿</button>
@@ -131,11 +169,11 @@
       <div class="row" style="margin-top:10px">
         <div>
           <div class="hint">緯度</div>
-          <input type="number" id="lat" step="0.000001" inputmode="decimal" placeholder="38.050000">
+          <input type="number" id="lat" step="0.000001" inputmode="decimal" placeholder="35.681236">
         </div>
         <div>
           <div class="hint">経度</div>
-          <input type="number" id="lng" step="0.000001" inputmode="decimal" placeholder="138.380000">
+          <input type="number" id="lng" step="0.000001" inputmode="decimal" placeholder="139.767125">
         </div>
       </div>
       <div class="msg" id="geoMsg"></div>
@@ -154,6 +192,7 @@
     <!-- ---- 一覧 ---- -->
     <div class="card" id="listCard" style="display:none">
       <h2>投稿を直す・消す</h2>
+      <p class="hint" style="margin-top:0">上で選んでいる旅行の投稿だけが出ます。</p>
       <button class="sub" id="btnReload">一覧を読み込みなおす</button>
       <div class="msg" id="listMsg"></div>
       <div id="list"></div>
@@ -162,7 +201,9 @@
     <!-- ---- 共有URL ---- -->
     <div class="card">
       <h2>家族に送るURL</h2>
-      <p class="hint" style="margin-top:0">このリンクを、奥さま・娘さん・おじいさま・おばあさまにLINE等で送ってください。ログインは要りません。</p>
+      <p class="hint" style="margin-top:0">
+        このリンク1本で、これまでの旅行ぜんぶが見られます。旅行が増えても送り直す必要はありません。ログインも要りません。
+      </p>
       <div class="url" id="shareUrl">—</div>
       <button class="sub" id="btnCopy">このURLをコピーする</button>
       <button class="sub" id="btnOpen">家族の画面を開いてみる</button>
@@ -172,7 +213,7 @@
     <button class="sub" id="btnLogout" style="margin-top:18px">ログアウト</button>
   </div>
 
-  <p class="foot">佐渡クエスト｜父と息子の佐渡島冒険記</p>
+  <p class="foot">たびクエスト｜かぞくの冒険マップ</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -191,10 +232,13 @@
     auth: { persistSession:true, autoRefreshToken:true, storageKey:'sado-quest-auth' }
   });
 
-  var trip = null;
+  var appMap = null;     // マップ（＝共有URL）1件
+  var trips  = [];       // このマップの旅行ぜんぶ
+  var trip   = null;     // いま選んでいる旅行
   var picked = { full:null, thumb:null };
   var sending = false;
-  var DRAFT = 'sado-quest-draft';
+  var DRAFT     = 'sado-quest-draft';
+  var LAST_TRIP = 'sado-quest-last-trip';
 
   function msg(id, kind, text){
     var el = $(id);
@@ -213,6 +257,15 @@
     var d = new Date(iso);
     if(isNaN(d)) return '';
     return d.toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+  function jday(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'long',day:'numeric'});
+  }
+  function todayJST(){
+    return new Date().toLocaleDateString('sv-SE', { timeZone:'Asia/Tokyo' }); // YYYY-MM-DD
   }
 
   // ================= 下書きの保存（投稿に失敗しても消えないように） =================
@@ -289,9 +342,12 @@
   function onLoggedIn(){
     $('authCard').style.display = 'none';
     $('appArea').style.display = 'block';
-    loadTrip();
+    $('ntDate').value = todayJST();
+    loadMap();
     loadDraft();
   }
+
+  // ================= マップと旅行の読み込み =================
 
   // 家族に配るURLを組み立てて画面に出す。
   // 合言葉はこのファイルには書かず、ログイン後にデータベースから取り出します。
@@ -313,18 +369,131 @@
     };
   }
 
-  function loadTrip(){
-    sb.from('trips').select('id,title,share_token')
-      .order('created_at', { ascending: true })
-      .limit(1).then(function(res){
+  function loadMap(){
+    sb.from('maps').select('id,title,subtitle,share_token')
+      .order('created_at', { ascending:true }).limit(1)
+      .then(function(res){
         if(res.error || !res.data || !res.data.length){
-          msg('postMsg','ng','旅行データが見つかりませんでした。設定をご確認ください。');
+          msg('tripMsg','ng','マップのデータが見つかりませんでした。<br>' +
+                             'Supabase で migration-japan.sql を実行したかご確認ください。');
           return;
         }
-        trip = res.data[0];
-        setupShareUrl(trip.share_token);
+        appMap = res.data[0];
+        setupShareUrl(appMap.share_token);
+        loadTrips();
       });
   }
+
+  function loadTrips(keepId){
+    sb.from('trips').select('id,title,subtitle,area_name,status,started_at')
+      .eq('map_id', appMap.id)
+      .order('created_at', { ascending:false })
+      .then(function(res){
+        if(res.error){
+          msg('tripMsg','ng','旅行の一覧を読み込めませんでした：' + esc(res.error.message)); return;
+        }
+        trips = res.data || [];
+        if(!trips.length){
+          trip = null;
+          $('tripSel').innerHTML = '';
+          $('tripName').textContent = 'まだ旅行がありません';
+          $('tripWhere').textContent = '下の「＋ 新しい旅行を始める」から作ってください。';
+          $('btnFinish').style.display = 'none';
+          $('btnResume').style.display = 'none';
+          return;
+        }
+
+        var want = keepId || (function(){ try{ return localStorage.getItem(LAST_TRIP); }catch(e){ return null; } })();
+        var live = trips.filter(function(t){ return t.status === 'active'; })[0];
+        var found = trips.filter(function(t){ return t.id === want; })[0];
+        trip = found || live || trips[0];
+
+        $('tripSel').innerHTML = trips.map(function(t){
+          return '<option value="' + esc(t.id) + '"' + (t.id === trip.id ? ' selected' : '') + '>' +
+                 esc(t.title) + (t.status === 'active' ? '（冒険中）' : '') + '</option>';
+        }).join('');
+
+        showTrip();
+      });
+  }
+
+  function showTrip(){
+    if(!trip) return;
+    try{ localStorage.setItem(LAST_TRIP, trip.id); }catch(e){}
+    var chip = trip.status === 'active'
+      ? '<span class="chip">冒険中</span>'
+      : '<span class="chip done">終わり</span>';
+    $('tripName').innerHTML = esc(trip.title) + chip;
+    $('tripWhere').textContent =
+      [trip.area_name, trip.subtitle, trip.started_at ? jday(trip.started_at) + ' 出発' : '']
+      .filter(Boolean).join('　/　');
+    $('btnFinish').style.display = trip.status === 'active' ? 'block' : 'none';
+    $('btnResume').style.display = trip.status === 'active' ? 'none'  : 'block';
+    hide('tripMsg');
+    if($('listCard').style.display !== 'none') loadList();
+  }
+
+  $('tripSel').addEventListener('change', function(){
+    var id = this.value;
+    trip = trips.filter(function(t){ return t.id === id; })[0] || trip;
+    showTrip();
+  });
+
+  // ---- 新しい旅行を始める ----
+  $('btnNewTrip').addEventListener('click', function(){
+    if(!appMap){ msg('newTripMsg','ng','マップを読み込めていません。画面を更新してください。'); return; }
+    var title = $('ntTitle').value.trim();
+    if(!title){ msg('newTripMsg','ng','旅行の名前を入れてください。'); return; }
+    var d = $('ntDate').value || todayJST();
+
+    $('btnNewTrip').disabled = true;
+    msg('newTripMsg','info','旅行を作っています…');
+
+    // いま冒険中の旅行があれば、先に「終わり」にします
+    sb.from('trips').update({ status:'completed', ended_at:new Date().toISOString() })
+      .eq('map_id', appMap.id).eq('status','active')
+      .then(function(){
+        return sb.from('trips').insert({
+          map_id: appMap.id,
+          title: title,
+          subtitle: $('ntSub').value.trim() || null,
+          area_name: $('ntArea').value.trim() || null,
+          status: 'active',
+          started_at: d + 'T00:00:00+09:00'
+        }).select('id');
+      })
+      .then(function(res){
+        $('btnNewTrip').disabled = false;
+        if(res.error){
+          msg('newTripMsg','ng','作れませんでした：' + esc(res.error.message)); return;
+        }
+        var newId = res.data && res.data[0] ? res.data[0].id : null;
+        msg('newTripMsg','ok','「' + esc(title) + '」を始めました。写真はこの旅行に入ります。');
+        $('ntTitle').value = ''; $('ntArea').value = ''; $('ntSub').value = '';
+        loadTrips(newId);
+      })
+      .catch(function(e){
+        $('btnNewTrip').disabled = false;
+        msg('newTripMsg','ng','作れませんでした：' + esc(e.message));
+      });
+  });
+
+  function setStatus(st){
+    if(!trip) return;
+    msg('tripMsg','info','変えています…');
+    var patch = { status: st };
+    if(st === 'completed') patch.ended_at = new Date().toISOString();
+    if(st === 'active')    patch.ended_at = null;
+    sb.from('trips').update(patch).eq('id', trip.id).then(function(res){
+      if(res.error){ msg('tripMsg','ng','変えられませんでした：' + esc(res.error.message)); return; }
+      msg('tripMsg','ok', st === 'completed'
+        ? 'この旅行を「終わり」にしました。家族の画面では日本地図が最初に出るようになります。'
+        : 'この旅行を「冒険中」にしました。家族の画面ではこの旅行がすぐ開きます。');
+      loadTrips(trip.id);
+    });
+  }
+  $('btnFinish').addEventListener('click', function(){ setStatus('completed'); });
+  $('btnResume').addEventListener('click', function(){ setStatus('active'); });
 
   // ================= 写真の縮小とEXIF除去 =================
   // canvas に描き直すことで、撮影日時や位置などのEXIF情報は自動的に消えます。
@@ -430,7 +599,7 @@
 
   $('btnPost').addEventListener('click', function(){
     if(sending) return;
-    if(!trip){ msg('postMsg','ng','旅行データを読み込めていません。画面を更新してください。'); return; }
+    if(!trip){ msg('postMsg','ng','旅行が選ばれていません。上で旅行を選ぶか、新しく始めてください。'); return; }
     if(!picked.full){ msg('postMsg','ng','写真を選んでください。'); return; }
     var lat = parseFloat($('lat').value), lng = parseFloat($('lng').value);
     if(isNaN(lat) || isNaN(lng)){
@@ -445,7 +614,8 @@
     $('btnPost').textContent = '投稿しています…';
     msg('postMsg','info','① 写真を送っています…');
 
-    var base = trip.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    var target = trip;
+    var base = target.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
     var fullUrl, thumbUrl;
 
     upload(picked.full, base + '.jpg')
@@ -458,7 +628,7 @@
         thumbUrl = u;
         msg('postMsg','info','③ 記録を書き込んでいます…');
         return sb.from('posts').insert({
-          trip_id: trip.id,
+          trip_id: target.id,
           sequence_number: 0,           // 0 を入れると自動で連番が付きます
           image_url: fullUrl,
           thumbnail_url: thumbUrl,
@@ -476,7 +646,8 @@
         sending = false;
         $('btnPost').disabled = false;
         $('btnPost').textContent = 'この内容で投稿する';
-        msg('postMsg','ok','投稿できました！　' + n + '番目の記録として家族の地図に出ています。');
+        msg('postMsg','ok','投稿できました！　「' + esc(target.title) + '」の ' + n +
+                           '番目の記録として、家族の地図に出ています。');
         // 成功したときだけ入力を消します
         $('file').value = ''; $('preview').style.display='none';
         $('place').value = ''; $('cmt').value = ''; $('cmtCount').textContent = '0';
@@ -506,7 +677,7 @@
   $('btnReload').addEventListener('click', loadList);
 
   function loadList(){
-    if(!trip){ msg('listMsg','ng','旅行データを読み込めていません。'); return; }
+    if(!trip){ msg('listMsg','ng','旅行が選ばれていません。'); return; }
     msg('listMsg','info','読み込んでいます…');
     sb.from('posts')
       .select('id,sequence_number,thumbnail_url,image_url,place_name,comment,posted_at')
@@ -515,7 +686,7 @@
         if(res.error){ msg('listMsg','ng','読み込めませんでした：' + esc(res.error.message)); return; }
         hide('listMsg');
         var rows = res.data || [];
-        if(!rows.length){ $('list').innerHTML = '<p class="hint">まだ投稿がありません。</p>'; return; }
+        if(!rows.length){ $('list').innerHTML = '<p class="hint">この旅行には、まだ投稿がありません。</p>'; return; }
         $('list').innerHTML = rows.map(function(p){
           return '<div class="item" data-id="' + p.id + '">' +
             '<div class="no">' + p.sequence_number + '</div>' +
