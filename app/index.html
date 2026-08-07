@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1e5f74">
+<title>たびクエスト</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#fbf6ea; --card:#ffffff; --ink:#2b2118; --sub:#6b5b4b;
+    --line:#e3d8c4; --sea:#1e5f74; --gold:#d99b1c; --now:#d1471f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    font-size:17px; line-height:1.7;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 14px 48px;}
+
+  /* ---------- ヘッダー ---------- */
+  header{
+    background:linear-gradient(160deg,#1e5f74 0%,#144556 100%);
+    color:#fff; padding:20px 14px 18px; text-align:center;
+    border-bottom:5px solid var(--gold);
+  }
+  header .title{font-size:30px;font-weight:800;letter-spacing:.06em;margin:0;}
+  header .sub{font-size:15px;opacity:.92;margin:4px 0 0;}
+  .badge{
+    display:inline-block;margin-top:10px;padding:5px 16px;border-radius:999px;
+    background:var(--gold);color:#3a2600;font-weight:800;font-size:15px;
+  }
+
+  /* ---------- 共通カード ---------- */
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px;margin-top:16px;box-shadow:0 2px 8px rgba(80,60,30,.06);
+  }
+  h2{font-size:19px;margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+  h2 .mark{
+    background:var(--sea);color:#fff;border-radius:8px;
+    font-size:14px;padding:2px 9px;font-weight:700;
+  }
+  .btn{
+    display:block;width:100%;min-height:50px;font-size:17px;font-weight:800;
+    border-radius:12px;border:2px solid var(--sea);background:#fff;color:var(--sea);
+    cursor:pointer;font-family:inherit;margin-top:12px;
+  }
+  .btn.back{margin:16px 0 0;text-align:left;padding-left:16px;}
+
+  /* ---------- いまここ ---------- */
+  #nowBar{
+    margin-top:16px;background:#fff5e8;border:2px solid var(--now);
+    border-radius:14px;padding:14px 16px;
+  }
+  #nowBar .lbl{font-weight:800;color:var(--now);font-size:15px;}
+  #nowBar .place{font-size:22px;font-weight:800;margin-top:2px;word-break:break-word;}
+  #nowBar .time{font-size:15px;color:var(--sub);margin-top:2px;}
+
+  /* ---------- 地図（共通） ---------- */
+  #jmap,#map{height:60vh;min-height:340px;border-radius:14px;border:1px solid var(--line);}
+  .maphint{font-size:14px;color:var(--sub);margin-top:8px;}
+
+  /* 旅行の詳細地図のピン */
+  .pin{
+    background:var(--sea);color:#fff;border:2px solid #fff;border-radius:50%;
+    width:30px;height:30px;line-height:26px;text-align:center;
+    font-weight:800;font-size:15px;box-shadow:0 2px 5px rgba(0,0,0,.35);
+  }
+  .pin.now{
+    background:var(--now);width:40px;height:40px;line-height:36px;font-size:18px;
+    border-width:3px;animation:beat 1.6s ease-in-out infinite;
+  }
+  @keyframes beat{0%,100%{transform:scale(1);}50%{transform:scale(1.14);}}
+  .nowtag{
+    background:var(--now);color:#fff;font-weight:800;font-size:13px;
+    padding:2px 8px;border-radius:6px;white-space:nowrap;border:2px solid #fff;
+    box-shadow:0 2px 5px rgba(0,0,0,.3);
+  }
+
+  /* 日本地図のピン（旅行1つ＝1本） */
+  .tdot{
+    background:var(--gold);color:#3a2600;border:3px solid #fff;border-radius:50%;
+    width:34px;height:34px;line-height:28px;text-align:center;
+    font-weight:800;font-size:16px;box-shadow:0 3px 7px rgba(0,0,0,.4);cursor:pointer;
+  }
+  .tdot.live{background:var(--now);color:#fff;animation:beat 1.6s ease-in-out infinite;}
+  .leaflet-tooltip.ttip{
+    background:#fff;border:2px solid var(--sea);color:var(--ink);
+    font-weight:800;font-size:14px;border-radius:9px;padding:4px 10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer;white-space:nowrap;
+  }
+  .leaflet-tooltip.ttip::before{border-top-color:var(--sea);}
+  .leaflet-popup-content{font-size:15px;line-height:1.6;margin:10px 12px;}
+  .leaflet-popup-content img{width:100%;border-radius:8px;margin-bottom:6px;display:block;}
+
+  /* ---------- 旅行の一覧 ---------- */
+  .trips{list-style:none;margin:0;padding:0;}
+  .trips li{
+    display:flex;gap:12px;align-items:center;padding:12px 0;
+    border-top:1px solid var(--line);cursor:pointer;
+  }
+  .trips li:first-child{border-top:0;}
+  .trips .cv{flex:0 0 76px;}
+  .trips .cv img{width:76px;height:76px;object-fit:cover;border-radius:12px;display:block;background:#eee;}
+  .trips .cv .none{
+    width:76px;height:76px;border-radius:12px;background:#f0e8d8;
+    display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:26px;
+  }
+  .trips .bd{flex:1;min-width:0;}
+  .trips .nm{font-size:18px;font-weight:800;word-break:break-word;}
+  .trips .ar{font-size:15px;color:var(--sub);}
+  .trips .dt{font-size:14px;color:var(--sub);}
+  .trips .go{flex:0 0 22px;color:var(--sea);font-size:22px;font-weight:800;text-align:right;}
+  .livetag{
+    display:inline-block;background:var(--now);color:#fff;font-size:12px;font-weight:800;
+    border-radius:6px;padding:1px 7px;margin-left:6px;vertical-align:2px;
+  }
+
+  /* ---------- 最新の1枚 ---------- */
+  #latestPhoto img{width:100%;border-radius:12px;display:block;background:#eee;}
+  .cmt{font-size:18px;margin:12px 0 0;white-space:pre-wrap;word-break:break-word;}
+  .meta{font-size:15px;color:var(--sub);margin-top:6px;}
+
+  /* ---------- 冒険ログ ---------- */
+  .log{list-style:none;margin:0;padding:0;}
+  .log li{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);}
+  .log li:first-child{border-top:0;}
+  .log .no{
+    flex:0 0 32px;height:32px;border-radius:50%;background:var(--sea);color:#fff;
+    font-weight:800;text-align:center;line-height:32px;font-size:15px;
+  }
+  .log li.is-now .no{background:var(--now);}
+  .log .body{flex:1;min-width:0;}
+  .log .pl{font-weight:700;font-size:17px;word-break:break-word;}
+  .log .tx{font-size:16px;color:#3f342a;white-space:pre-wrap;word-break:break-word;}
+  .log .tm{font-size:14px;color:var(--sub);}
+  .log .th{flex:0 0 68px;}
+  .log .th img{width:68px;height:68px;object-fit:cover;border-radius:10px;display:block;background:#eee;}
+
+  /* ---------- 状態表示 ---------- */
+  .state{text-align:center;padding:26px 12px;}
+  .state .big{font-size:22px;font-weight:800;}
+  .state .small{font-size:16px;color:var(--sub);margin-top:6px;}
+  .err{background:#fdecea;border:2px solid #d1471f;color:#8b2a12;
+       border-radius:14px;padding:16px;margin-top:16px;font-size:16px;}
+  #newBanner{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:9999;
+    background:var(--now);color:#fff;border:0;border-radius:999px;
+    padding:14px 24px;min-height:48px;font-size:17px;font-weight:800;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;display:none;
+  }
+  footer{text-align:center;font-size:14px;color:var(--sub);margin-top:22px;line-height:1.9;}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="title" id="hTitle">たびクエスト</p>
+  <p class="sub" id="hSub">かぞくの冒険マップ</p>
+  <span class="badge" id="hBadge" style="display:none"></span>
+</header>
+
+<div class="wrap">
+
+  <div id="errBox" class="err" style="display:none"></div>
+
+  <div id="loading" class="state">
+    <div class="big">読み込んでいます…</div>
+    <div class="small">少しお待ちください</div>
+  </div>
+
+  <!-- ================= 日本地図（旅行の一覧） ================= -->
+  <div id="viewJapan" style="display:none">
+
+    <div class="card">
+      <h2><span class="mark">地図</span>これまで行ったところ</h2>
+      <div id="jmap"></div>
+      <p class="maphint">丸をタップすると、その旅行の写真と道すじが見られます。</p>
+      <button class="btn" id="btnZoomJapan">日本ぜんぶを見る</button>
+    </div>
+
+    <div class="card">
+      <h2><span class="mark">記録</span>旅の一覧</h2>
+      <ul class="trips" id="tripList"></ul>
+      <div id="noTrips" class="state" style="display:none">
+        <div class="big">まだ旅の記録がありません</div>
+        <div class="small">最初の写真がとどくまで、もう少しお待ちください。</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= 旅行の詳細 ================= -->
+  <div id="viewTrip" style="display:none">
+
+    <button class="btn back" id="btnBack">← ぜんぶの旅を見る（日本地図）</button>
+
+    <div id="nowBar" style="display:none">
+      <div class="lbl">いまここ</div>
+      <div class="place" id="nowPlace">—</div>
+      <div class="time" id="nowTime"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="mark">地図</span><span id="mapH">どこにいる？</span></h2>
+      <div id="map"></div>
+      <p class="maphint" id="mapHint">数字は立ち寄った順番、線は回った道すじです。丸をタップすると写真が出ます。</p>
+    </div>
+
+    <div class="card" id="latestCard">
+      <h2><span class="mark">写真</span><span id="latestH">いちばん新しい1枚</span></h2>
+      <div id="latestPhoto"></div>
+      <p class="cmt" id="latestCmt"></p>
+      <p class="meta" id="latestMeta"></p>
+    </div>
+
+    <div class="card" id="logCard">
+      <h2><span class="mark">記録</span>冒険ログ</h2>
+      <ul class="log" id="logList"></ul>
+    </div>
+
+    <div id="empty" class="card state" style="display:none">
+      <div class="big">まもなく出発！</div>
+      <div class="small">最初の写真がとどくまで、もう少しお待ちください。</div>
+    </div>
+
+    <button class="btn back" id="btnBack2">← ぜんぶの旅を見る（日本地図）</button>
+  </div>
+
+  <footer>
+    現在地は、最後に写真を投稿した場所です。<br>
+    最終更新：<span id="updatedAt">—</span>
+  </footer>
+</div>
+
+<button id="newBanner">新しい投稿があります　タップして更新</button>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var CFG = window.SADO_CONFIG || {
+    SUPABASE_URL: 'https://ewpqucrsvgicqlmbotvo.supabase.co',
+    SUPABASE_KEY: 'sb_publishable_GN2YwmobTQt6dpeccWFLLw__4X-biBJ'
+  };
+
+  // 共有URLの合言葉。URL の ?t=... だけから受け取ります。
+  // （このファイル自体には合言葉を書きません）
+  var params = new URLSearchParams(location.search);
+  var token  = params.get('t') || '';
+
+  // 日本ぜんぶが入るおおよその範囲
+  var JAPAN_BOUNDS = [[24.0, 122.5], [45.8, 146.0]];
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  var mapInfo = null;       // マップ（＝この共有URL全体）の情報
+  var trips   = [];         // 旅行の一覧
+  var cur     = null;       // いま開いている旅行
+  var posts   = [];         // いま開いている旅行の投稿
+  var lastCount = -1;
+
+  var jmap, jLayer, jDrawn = false;
+  var map, layerPins, layerLine, tripFirstDraw = true;
+
+  // ---------------- 表示ユーティリティ ----------------
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function jtime(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleString('ja-JP', {
+      timeZone:'Asia/Tokyo', month:'numeric', day:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    }) + '　（日本時間）';
+  }
+  function jtimeShort(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleString('ja-JP', {
+      timeZone:'Asia/Tokyo', month:'numeric', day:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+  }
+  function jdate(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('ja-JP', {
+      timeZone:'Asia/Tokyo', year:'numeric', month:'long', day:'numeric'
+    });
+  }
+  function jdateShort(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('ja-JP', {
+      timeZone:'Asia/Tokyo', month:'long', day:'numeric'
+    });
+  }
+  // 「2026年7月28日 〜 7月29日」のような表記をつくる
+  function periodText(t){
+    var a = t.first_at || t.started_at;
+    var b = t.last_at  || t.ended_at;
+    if(!a) return '';
+    var s = jdate(a);
+    if(!b) return s;
+    var da = new Date(a), db = new Date(b);
+    if(da.toDateString() === db.toDateString()) return s;
+    return s + ' 〜 ' + jdateShort(b);
+  }
+  function badgeText(status){
+    return status === 'completed' ? '冒険はぶじ終了！' :
+           status === 'planned'   ? 'まもなく出発！'   : 'ただいま冒険中！';
+  }
+  function showError(msg){
+    $('errBox').innerHTML = msg;
+    $('errBox').style.display = 'block';
+    $('loading').style.display = 'none';
+  }
+
+  // ---------------- 通信 ----------------
+  // 合言葉（token）を渡した人にだけ結果を返す専用の窓口を呼びます。
+  // 合言葉が違えば、サーバー側で「空っぽ」が返るだけです。
+  function rpc(name, args){
+    return fetch(CFG.SUPABASE_URL + '/rest/v1/rpc/' + name, {
+      method: 'POST',
+      headers: {
+        apikey: CFG.SUPABASE_KEY,
+        Authorization: 'Bearer ' + CFG.SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store',
+      body: JSON.stringify(args)
+    }).then(function(r){
+      // 404 ＝ その窓口がまだ用意されていない（＝古い作りのまま）
+      if(r.status === 404) throw new Error('__NOFN__');
+      if(!r.ok) throw new Error('サーバーから ' + r.status + ' が返りました');
+      return r.json();
+    });
+  }
+
+  // 古い作り（旅行1件だけ）のときに使う予備の読み込み。
+  // データベースの引っ越しがまだでも、家族の画面が真っ白にならないようにするための保険です。
+  var legacy = false;
+  function loadLegacy(){
+    legacy = true;
+    return rpc('get_trip', { p_token: token }).then(function(rows){
+      if(!rows || !rows.length) throw new Error('__BADTOKEN__');
+      var t = rows[0];
+      mapInfo = { title: t.title, subtitle: t.subtitle };
+      return rpc('get_posts', { p_token: token }).then(function(ps){
+        ps = ps || [];
+        var la = null, lo = null;
+        if(ps.length){
+          la = ps.reduce(function(a,p){ return a + Number(p.latitude);  }, 0) / ps.length;
+          lo = ps.reduce(function(a,p){ return a + Number(p.longitude); }, 0) / ps.length;
+        }
+        return [{
+          id: t.id, title: t.title, subtitle: t.subtitle, area_name: null,
+          status: t.status, started_at: null, ended_at: null,
+          post_count: ps.length, center_lat: la, center_lng: lo,
+          cover_url: ps.length ? (ps[0].thumbnail_url || ps[0].image_url) : null,
+          first_at: ps.length ? ps[0].posted_at : null,
+          last_at:  ps.length ? ps[ps.length-1].posted_at : null
+        }];
+      });
+    });
+  }
+
+  // ================================================================
+  //  画面1：日本地図
+  // ================================================================
+  function initJapanMap(){
+    jmap = L.map('jmap', { zoomControl:true, scrollWheelZoom:true });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, minZoom: 3,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(jmap);
+    jLayer = L.layerGroup().addTo(jmap);
+    jmap.fitBounds(JAPAN_BOUNDS);
+  }
+
+  function drawJapanMap(){
+    if(!jmap) initJapanMap();
+    jmap.invalidateSize();
+    jLayer.clearLayers();
+
+    var pts = [];
+    trips.forEach(function(t, i){
+      if(t.center_lat == null || t.center_lng == null) return;
+      var ll = [Number(t.center_lat), Number(t.center_lng)];
+      pts.push(ll);
+
+      var live = (t.status === 'active');
+      var m = L.marker(ll, {
+        icon: L.divIcon({
+          className:'',
+          html:'<div class="tdot' + (live ? ' live' : '') + '">' + (i + 1) + '</div>',
+          iconSize:[34,34], iconAnchor:[17,17]
+        }),
+        zIndexOffset: live ? 1000 : 0,
+        keyboard: true,
+        title: t.title || '旅行'
+      }).addTo(jLayer);
+
+      m.bindTooltip(esc(t.title || '旅行'), {
+        permanent:true, direction:'top', offset:[0,-16],
+        className:'ttip', interactive:true
+      });
+      m.on('click', function(){ goTrip(t.id); });
+      m.on('tooltipopen', function(e){
+        if(e.tooltip && e.tooltip._container){
+          e.tooltip._container.onclick = function(){ goTrip(t.id); };
+        }
+      });
+    });
+
+    if(!jDrawn){
+      if(pts.length === 1){
+        jmap.setView(pts[0], 7);
+      } else if(pts.length > 1){
+        jmap.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 8 });
+      } else {
+        jmap.fitBounds(JAPAN_BOUNDS);
+      }
+      jDrawn = true;
+    }
+  }
+
+  function drawTripList(){
+    if(!trips.length){
+      $('tripList').innerHTML = '';
+      $('noTrips').style.display = 'block';
+      return;
+    }
+    $('noTrips').style.display = 'none';
+    $('tripList').innerHTML = trips.map(function(t, i){
+      var cv = t.cover_url
+        ? '<img src="' + esc(t.cover_url) + '" alt="" loading="lazy">'
+        : '<div class="none">＋</div>';
+      var live = (t.status === 'active') ? '<span class="livetag">冒険中</span>' : '';
+      var n = Number(t.post_count || 0);
+      return '<li data-id="' + esc(t.id) + '">' +
+               '<div class="cv">' + cv + '</div>' +
+               '<div class="bd">' +
+                 '<div class="nm">' + (i+1) + '. ' + esc(t.title || '旅行') + live + '</div>' +
+                 (t.area_name ? '<div class="ar">' + esc(t.area_name) + '</div>' : '') +
+                 '<div class="dt">' + esc(periodText(t)) +
+                   (n ? '　/　写真 ' + n + '枚' : '　/　まだ写真はありません') + '</div>' +
+               '</div>' +
+               '<div class="go">›</div>' +
+             '</li>';
+    }).join('');
+
+    Array.prototype.forEach.call($('tripList').children, function(li){
+      li.addEventListener('click', function(){ goTrip(li.getAttribute('data-id')); });
+    });
+  }
+
+  function showJapan(){
+    cur = null;
+    $('loading').style.display = 'none';
+    $('viewTrip').style.display = 'none';
+    $('viewJapan').style.display = 'block';
+    $('hTitle').textContent = (mapInfo && mapInfo.title) || 'たびクエスト';
+    $('hSub').textContent   = (mapInfo && mapInfo.subtitle) || 'かぞくの冒険マップ';
+    $('hBadge').style.display = 'none';
+    $('newBanner').style.display = 'none';
+    drawTripList();
+    drawJapanMap();
+    stamp();
+    window.scrollTo(0, 0);
+  }
+
+  // ================================================================
+  //  画面2：旅行の詳細
+  // ================================================================
+  function initTripMap(){
+    map = L.map('map', { zoomControl:true, scrollWheelZoom:true })
+           .setView([36.0, 138.0], 6);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    layerLine = L.layerGroup().addTo(map);
+    layerPins = L.layerGroup().addTo(map);
+  }
+
+  function drawTripMap(){
+    if(!map) initTripMap();
+    map.invalidateSize();
+    layerPins.clearLayers();
+    layerLine.clearLayers();
+    if(!posts.length) return;
+
+    var live = (cur && cur.status === 'active');
+    var pts = posts.map(function(p){ return [Number(p.latitude), Number(p.longitude)]; });
+
+    if(pts.length > 1){
+      L.polyline(pts, {
+        color:'#1e5f74', weight:4, opacity:.85, dashArray:'10 8', lineCap:'round'
+      }).addTo(layerLine);
+    }
+
+    posts.forEach(function(p, i){
+      var isLast = (i === posts.length - 1);
+      var hot = isLast && live;
+      var ll = [Number(p.latitude), Number(p.longitude)];
+      var m = L.marker(ll, {
+        icon: L.divIcon({
+          className:'',
+          html:'<div class="pin' + (hot ? ' now' : '') + '">' + (i + 1) + '</div>',
+          iconSize: hot ? [40,40] : [30,30],
+          iconAnchor: hot ? [20,20] : [15,15]
+        }),
+        zIndexOffset: hot ? 1000 : 0
+      }).addTo(layerPins);
+
+      var html = '';
+      if(p.thumbnail_url || p.image_url){
+        html += '<img src="' + esc(p.thumbnail_url || p.image_url) + '" alt="">';
+      }
+      html += '<b>' + (i + 1) + '. ' + esc(p.place_name || '名もなき地点') + '</b>';
+      if(p.comment) html += '<br>' + esc(p.comment);
+      html += '<br><span style="color:#6b5b4b">' + esc(jtimeShort(p.posted_at)) + '</span>';
+      m.bindPopup(html, { maxWidth: 260 });
+
+      if(hot){
+        L.marker(ll, {
+          icon: L.divIcon({ className:'', html:'<div class="nowtag">いまここ</div>',
+                            iconSize:[76,24], iconAnchor:[38,42] }),
+          interactive:false, zIndexOffset:1100
+        }).addTo(layerPins);
+      }
+    });
+
+    if(tripFirstDraw){
+      if(pts.length === 1) map.setView(pts[0], 12);
+      else                 map.fitBounds(L.latLngBounds(pts).pad(0.25));
+      tripFirstDraw = false;
+    }
+  }
+
+  function renderTrip(){
+    $('loading').style.display = 'none';
+    $('viewJapan').style.display = 'none';
+    $('viewTrip').style.display = 'block';
+
+    var live = (cur.status === 'active');
+
+    $('hTitle').textContent = cur.title || '旅の記録';
+    $('hSub').textContent   = cur.subtitle || cur.area_name || '';
+    $('hBadge').textContent = badgeText(cur.status);
+    $('hBadge').style.display = 'inline-block';
+
+    var has = posts.length > 0;
+    $('nowBar').style.display     = (has && live) ? 'block' : 'none';
+    $('latestCard').style.display = has ? 'block' : 'none';
+    $('logCard').style.display    = has ? 'block' : 'none';
+    $('empty').style.display      = has ? 'none'  : 'block';
+
+    $('mapH').textContent   = live ? 'どこにいる？' : '回ったところ';
+    $('latestH').textContent = live ? 'いちばん新しい1枚' : 'この旅のはじめの1枚';
+
+    drawTripMap();
+
+    if(has){
+      var pick = live ? posts[posts.length - 1] : posts[0];
+      var pickNo = live ? posts.length : 1;
+
+      if(live){
+        $('nowPlace').textContent = cur.title ? (posts[posts.length-1].place_name || cur.title + 'のどこか')
+                                              : (posts[posts.length-1].place_name || 'どこか');
+        $('nowTime').textContent  = jtime(posts[posts.length-1].posted_at);
+      }
+
+      $('latestPhoto').innerHTML =
+        '<img src="' + esc(pick.image_url) + '" alt="写真" loading="eager">';
+      $('latestCmt').textContent  = pick.comment || '';
+      $('latestMeta').textContent =
+        pickNo + '番目の投稿　/　' + (pick.place_name || '名もなき地点') +
+        '　/　' + jtime(pick.posted_at);
+
+      var order = live ? posts.slice().reverse() : posts.slice();
+      $('logList').innerHTML = order.map(function(p, idx){
+        var no = live ? (posts.length - idx) : (idx + 1);
+        var isNow = live && idx === 0;
+        var th = p.thumbnail_url || p.image_url;
+        return '<li class="' + (isNow ? 'is-now' : '') + '">' +
+                 '<div class="no">' + no + '</div>' +
+                 (th ? '<div class="th"><img src="' + esc(th) + '" alt="" loading="lazy"></div>' : '') +
+                 '<div class="body">' +
+                   '<div class="pl">' + esc(p.place_name || '名もなき地点') +
+                     (isNow ? '　<span style="color:#d1471f">← いまここ</span>' : '') + '</div>' +
+                   (p.comment ? '<div class="tx">' + esc(p.comment) + '</div>' : '') +
+                   '<div class="tm">' + esc(jtimeShort(p.posted_at)) + '</div>' +
+                 '</div>' +
+               '</li>';
+      }).join('');
+    }
+
+    stamp();
+    $('newBanner').style.display = 'none';
+    lastCount = posts.length;
+    window.scrollTo(0, 0);
+  }
+
+  function stamp(){
+    $('updatedAt').textContent = new Date().toLocaleString('ja-JP', {
+      timeZone:'Asia/Tokyo', hour:'2-digit', minute:'2-digit'
+    });
+  }
+
+  // ================================================================
+  //  行き来（URLの #trip=... で覚えます）
+  // ================================================================
+  function goTrip(id){
+    if(location.hash !== '#trip=' + id) location.hash = 'trip=' + id;
+    else openTrip(id);
+  }
+  function goJapan(){
+    if(location.hash) location.hash = '';
+    else showJapan();
+  }
+
+  function openTrip(id){
+    var t = trips.filter(function(x){ return x.id === id; })[0];
+    if(!t){ showJapan(); return; }
+    cur = t;
+    tripFirstDraw = true;
+    $('loading').style.display = 'block';
+    $('viewJapan').style.display = 'none';
+    $('viewTrip').style.display = 'none';
+    var q = legacy ? rpc('get_posts', { p_token: token })
+                   : rpc('get_trip_posts', { p_token: token, p_trip_id: id });
+    return q
+      .then(function(rows){ posts = rows || []; renderTrip(); })
+      .catch(function(e){
+        showError('<b>この旅の写真を読み込めませんでした。</b><br>' +
+                  'インターネットにつながっているか確認して、もう一度お試しください。<br>' +
+                  '<span style="font-size:14px">（詳細：' + esc(e && e.message) + '）</span>');
+      });
+  }
+
+  function route(){
+    var m = /^#trip=(.+)$/.exec(location.hash || '');
+    if(m) openTrip(m[1]);
+    else  showJapan();
+  }
+  window.addEventListener('hashchange', route);
+
+  $('btnBack').addEventListener('click', goJapan);
+  $('btnBack2').addEventListener('click', goJapan);
+  $('btnZoomJapan').addEventListener('click', function(){
+    if(jmap) jmap.fitBounds(JAPAN_BOUNDS);
+  });
+
+  // ================================================================
+  //  最初の読み込み
+  // ================================================================
+  function load(){
+    if(!token) return Promise.reject(new Error('__BADTOKEN__'));
+    return rpc('get_map', { p_token: token })
+      .then(function(rows){
+        if(!rows || !rows.length) throw new Error('__BADTOKEN__');
+        mapInfo = rows[0];
+        return rpc('get_trips', { p_token: token });
+      })
+      .catch(function(e){
+        if(e && e.message === '__NOFN__') return loadLegacy();
+        throw e;
+      })
+      .then(function(rows){
+        trips = rows || [];
+        // 冒険中の旅行があれば、その旅行をそのまま開きます
+        // （旅の最中に家族がURLを開いたとき、すぐ「いまここ」が見えるように）
+        var live = trips.filter(function(t){ return t.status === 'active'; })[0];
+        if(!location.hash && live) { location.replace('#trip=' + live.id); }
+        route();
+      });
+  }
+
+  // 新しい投稿があれば下にボタンを出す
+  function checkNew(){
+    if(!token) return;
+    if(cur){
+      (legacy ? rpc('get_posts', { p_token: token })
+              : rpc('get_trip_posts', { p_token: token, p_trip_id: cur.id }))
+        .then(function(rows){
+          if(rows && rows.length !== lastCount) $('newBanner').style.display = 'block';
+        })
+        .catch(function(){ /* 通信が不安定なときは黙って次回に回す */ });
+    } else if(!legacy){
+      rpc('get_trips', { p_token: token })
+        .then(function(rows){
+          if(!rows) return;
+          var before = trips.map(function(t){ return t.id + ':' + t.post_count; }).join(',');
+          var after  = rows.map(function(t){ return t.id + ':' + t.post_count; }).join(',');
+          if(before !== after){ trips = rows; drawTripList(); drawJapanMap(); stamp(); }
+        })
+        .catch(function(){});
+    }
+  }
+
+  $('newBanner').addEventListener('click', function(){
+    $('newBanner').style.display = 'none';
+    if(cur) openTrip(cur.id);
+  });
+
+  load().catch(function(e){
+    if(e && e.message === '__BADTOKEN__'){
+      showError('<b>このURLでは旅の記録を開けませんでした。</b><br>' +
+                'お手元のリンクをもう一度タップしてみてください。' +
+                'それでも開かないときは、送ってくれた人にリンクを聞き直してください。');
+    } else {
+      showError('<b>読み込みに失敗しました。</b><br>' +
+                'インターネットにつながっているか確認して、画面を下に引っぱって更新してください。<br>' +
+                '<span style="font-size:14px">（詳細：' + esc(e && e.message) + '）</span>');
+    }
+  });
+
+  setInterval(checkNew, 30000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) checkNew();
+  });
+})();
+</script>
+</body>
+</html>

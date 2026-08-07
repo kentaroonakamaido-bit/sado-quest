@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1e5f74">
+<title>たびクエスト｜投稿</title>
+<style>
+  :root{
+    --bg:#fbf6ea; --card:#fff; --ink:#2b2118; --sub:#6b5b4b;
+    --line:#d9cdb6; --sea:#1e5f74; --gold:#d99b1c; --now:#d1471f; --ok:#1f7a3d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%;
+  }
+  header{
+    background:linear-gradient(160deg,#1e5f74,#144556);color:#fff;
+    padding:16px 14px;text-align:center;border-bottom:5px solid var(--gold);
+  }
+  header .t{font-size:22px;font-weight:800;margin:0;}
+  header .s{font-size:14px;opacity:.9;margin:2px 0 0;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 14px 60px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:16px;margin-top:16px;box-shadow:0 2px 8px rgba(80,60,30,.06);}
+  .card.now{border:2px solid var(--sea);background:#f6fbfc;}
+  h2{font-size:19px;margin:0 0 12px;}
+  label{display:block;font-weight:700;font-size:16px;margin:14px 0 6px;}
+  .hint{font-size:14px;color:var(--sub);font-weight:400;margin-top:2px;}
+  input[type=text],input[type=email],input[type=password],input[type=number],
+  input[type=date],textarea,select{
+    width:100%;font-size:17px;padding:12px;min-height:48px;
+    border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
+    font-family:inherit;
+  }
+  textarea{min-height:96px;resize:vertical;}
+  input[type=file]{width:100%;font-size:16px;padding:10px 0;}
+  button{
+    width:100%;min-height:52px;font-size:18px;font-weight:800;
+    border:0;border-radius:12px;background:var(--sea);color:#fff;
+    margin-top:12px;cursor:pointer;font-family:inherit;
+  }
+  button.sub{background:#fff;color:var(--sea);border:2px solid var(--sea);}
+  button.danger{background:var(--now);}
+  button:disabled{opacity:.55;cursor:not-allowed;}
+  .row{display:flex;gap:10px;}
+  .row>*{flex:1;}
+  .msg{border-radius:10px;padding:12px;margin-top:12px;font-size:16px;display:none;}
+  .msg.info{background:#e8f1f4;border:2px solid var(--sea);color:#123f4d;}
+  .msg.ok{background:#e7f5ec;border:2px solid var(--ok);color:#14562b;}
+  .msg.ng{background:#fdecea;border:2px solid var(--now);color:#8b2a12;}
+  #preview{width:100%;border-radius:12px;margin-top:10px;display:none;background:#eee;}
+  .count{font-size:14px;color:var(--sub);text-align:right;}
+  .tabs{display:flex;gap:8px;margin-top:16px;}
+  .tabs button{margin:0;min-height:48px;font-size:16px;background:#fff;color:var(--sea);
+               border:2px solid var(--sea);}
+  .tabs button.on{background:var(--sea);color:#fff;}
+  .item{border-top:1px solid var(--line);padding:12px 0;display:flex;gap:10px;}
+  .item:first-child{border-top:0;}
+  .item .no{flex:0 0 30px;height:30px;border-radius:50%;background:var(--sea);color:#fff;
+            text-align:center;line-height:30px;font-weight:800;font-size:15px;}
+  .item img{width:60px;height:60px;object-fit:cover;border-radius:8px;background:#eee;}
+  .item .b{flex:1;min-width:0;}
+  .item .b .p{font-weight:700;word-break:break-word;}
+  .item .b .c{font-size:15px;color:#3f342a;word-break:break-word;white-space:pre-wrap;}
+  .item .b .d{font-size:13px;color:var(--sub);}
+  .item .acts{display:flex;gap:8px;margin-top:8px;}
+  .item .acts button{margin:0;min-height:44px;font-size:15px;}
+  .url{font-size:14px;word-break:break-all;background:#f3ece0;border-radius:8px;padding:10px;
+       border:1px solid var(--line);}
+  .foot{font-size:14px;color:var(--sub);text-align:center;margin-top:22px;}
+  .tripnow{font-size:20px;font-weight:800;word-break:break-word;}
+  .tripsub{font-size:14px;color:var(--sub);}
+  .chip{display:inline-block;font-size:12px;font-weight:800;border-radius:6px;
+        padding:1px 8px;margin-left:6px;vertical-align:2px;color:#fff;background:var(--now);}
+  .chip.done{background:var(--sub);}
+  summary{font-size:16px;font-weight:700;cursor:pointer;min-height:44px;line-height:44px;}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="t">たびクエスト</p>
+  <p class="s">投稿・管理画面（お父さん専用）</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ ログイン ============ -->
+  <div class="card" id="authCard">
+    <h2>ログイン</h2>
+    <label for="email">メールアドレス</label>
+    <input type="email" id="email" autocomplete="username" inputmode="email" placeholder="you@example.com">
+    <label for="pw">パスワード</label>
+    <input type="password" id="pw" autocomplete="current-password" placeholder="パスワード">
+    <button id="btnLogin">ログインする</button>
+    <div class="msg" id="authMsg"></div>
+
+    <details style="margin-top:18px">
+      <summary>はじめて使うとき（アカウントを作る）</summary>
+      <p class="hint" style="margin-top:8px">
+        いちばん最初の1回だけ、上のメールとパスワードを入れてから下のボタンを押してください。<br>
+        パスワードは6文字以上。忘れないものにしてください。
+      </p>
+      <button class="sub" id="btnSignup">この内容でアカウントを作る</button>
+    </details>
+  </div>
+
+  <!-- ============ 本体 ============ -->
+  <div id="appArea" style="display:none">
+
+    <!-- ---- いまの旅行 ---- -->
+    <div class="card now" id="tripCard">
+      <h2>いまの旅行</h2>
+      <div class="tripnow" id="tripName">—</div>
+      <div class="tripsub" id="tripWhere"></div>
+
+      <label for="tripSel">旅行を切りかえる
+        <span class="hint">写真は、ここで選んだ旅行に入ります。</span>
+      </label>
+      <select id="tripSel"></select>
+      <button class="sub" id="btnFinish" style="display:none">この旅行を「終わり」にする</button>
+      <button class="sub" id="btnResume" style="display:none">この旅行をもう一度「冒険中」にする</button>
+      <div class="msg" id="tripMsg"></div>
+
+      <details style="margin-top:16px">
+        <summary>＋ 新しい旅行を始める</summary>
+        <p class="hint" style="margin-top:8px">
+          旅行に出るたび、ここで1つ作ってください。<br>
+          新しく作ると、いま冒険中の旅行は自動で「終わり」になります。家族に送るURLは今までと同じままです。
+        </p>
+        <label for="ntTitle">旅行の名前</label>
+        <input type="text" id="ntTitle" maxlength="40" placeholder="例：北海道クエスト">
+        <label for="ntArea">どのへん？（任意）</label>
+        <input type="text" id="ntArea" maxlength="40" placeholder="例：北海道・道東">
+        <label for="ntSub">ひとこと副題（任意）</label>
+        <input type="text" id="ntSub" maxlength="60" placeholder="例：父と息子の流氷さがし">
+        <label for="ntDate">出発の日</label>
+        <input type="date" id="ntDate">
+        <button id="btnNewTrip">この旅行を始める</button>
+        <div class="msg" id="newTripMsg"></div>
+      </details>
+    </div>
+
+    <div class="tabs">
+      <button id="tabPost" class="on">写真を投稿</button>
+      <button id="tabList">投稿を直す・消す</button>
+    </div>
+
+    <!-- ---- 投稿フォーム ---- -->
+    <div class="card" id="postCard">
+      <h2>写真を投稿する</h2>
+
+      <label for="file">写真（1枚）
+        <span class="hint">「写真を撮る」または「ライブラリから選ぶ」</span>
+      </label>
+      <input type="file" id="file" accept="image/*">
+      <img id="preview" alt="選んだ写真">
+
+      <label>いまいる場所
+        <span class="hint">ボタンを押したときだけ位置を取ります。ずっと追いかけたりはしません。</span>
+      </label>
+      <button class="sub" id="btnGeo">現在地を取得する</button>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <div class="hint">緯度</div>
+          <input type="number" id="lat" step="0.000001" inputmode="decimal" placeholder="35.681236">
+        </div>
+        <div>
+          <div class="hint">経度</div>
+          <input type="number" id="lng" step="0.000001" inputmode="decimal" placeholder="139.767125">
+        </div>
+      </div>
+      <div class="msg" id="geoMsg"></div>
+
+      <label for="place">場所の名前（任意）</label>
+      <input type="text" id="place" placeholder="例：両津港、トキの森公園" maxlength="60">
+
+      <label for="cmt">ひとこと（任意・150文字まで）</label>
+      <textarea id="cmt" maxlength="150" placeholder="例：とうちゃく！ 息子がトキを見つけた。"></textarea>
+      <div class="count"><span id="cmtCount">0</span> / 150</div>
+
+      <button id="btnPost">この内容で投稿する</button>
+      <div class="msg" id="postMsg"></div>
+    </div>
+
+    <!-- ---- 一覧 ---- -->
+    <div class="card" id="listCard" style="display:none">
+      <h2>投稿を直す・消す</h2>
+      <p class="hint" style="margin-top:0">上で選んでいる旅行の投稿だけが出ます。</p>
+      <button class="sub" id="btnReload">一覧を読み込みなおす</button>
+      <div class="msg" id="listMsg"></div>
+      <div id="list"></div>
+    </div>
+
+    <!-- ---- 共有URL ---- -->
+    <div class="card">
+      <h2>家族に送るURL</h2>
+      <p class="hint" style="margin-top:0">
+        このリンク1本で、これまでの旅行ぜんぶが見られます。旅行が増えても送り直す必要はありません。ログインも要りません。
+      </p>
+      <div class="url" id="shareUrl">—</div>
+      <button class="sub" id="btnCopy">このURLをコピーする</button>
+      <button class="sub" id="btnOpen">家族の画面を開いてみる</button>
+      <div class="msg" id="copyMsg"></div>
+    </div>
+
+    <button class="sub" id="btnLogout" style="margin-top:18px">ログアウト</button>
+  </div>
+
+  <p class="foot">たびクエスト｜かぞくの冒険マップ</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var CFG = window.SADO_CONFIG || {
+    SUPABASE_URL: 'https://ewpqucrsvgicqlmbotvo.supabase.co',
+    SUPABASE_KEY: 'sb_publishable_GN2YwmobTQt6dpeccWFLLw__4X-biBJ'
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {
+    auth: { persistSession:true, autoRefreshToken:true, storageKey:'sado-quest-auth' }
+  });
+
+  var appMap = null;     // マップ（＝共有URL）1件
+  var trips  = [];       // このマップの旅行ぜんぶ
+  var trip   = null;     // いま選んでいる旅行
+  var picked = { full:null, thumb:null };
+  var sending = false;
+  var DRAFT     = 'sado-quest-draft';
+  var LAST_TRIP = 'sado-quest-last-trip';
+
+  function msg(id, kind, text){
+    var el = $(id);
+    el.className = 'msg ' + kind;
+    el.innerHTML = text;
+    el.style.display = 'block';
+  }
+  function hide(id){ $(id).style.display = 'none'; }
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function jtime(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+  function jday(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'long',day:'numeric'});
+  }
+  function todayJST(){
+    return new Date().toLocaleDateString('sv-SE', { timeZone:'Asia/Tokyo' }); // YYYY-MM-DD
+  }
+
+  // ================= 下書きの保存（投稿に失敗しても消えないように） =================
+  function saveDraft(){
+    try{
+      localStorage.setItem(DRAFT, JSON.stringify({
+        place:$('place').value, cmt:$('cmt').value, lat:$('lat').value, lng:$('lng').value
+      }));
+    }catch(e){}
+  }
+  function loadDraft(){
+    try{
+      var d = JSON.parse(localStorage.getItem(DRAFT) || '{}');
+      if(d.place) $('place').value = d.place;
+      if(d.cmt)   $('cmt').value   = d.cmt;
+      if(d.lat)   $('lat').value   = d.lat;
+      if(d.lng)   $('lng').value   = d.lng;
+      $('cmtCount').textContent = $('cmt').value.length;
+    }catch(e){}
+  }
+  function clearDraft(){ try{ localStorage.removeItem(DRAFT); }catch(e){} }
+  ['place','cmt','lat','lng'].forEach(function(id){
+    $(id).addEventListener('input', saveDraft);
+  });
+  $('cmt').addEventListener('input', function(){
+    $('cmtCount').textContent = $('cmt').value.length;
+  });
+
+  // ================= ログイン =================
+  $('btnLogin').addEventListener('click', function(){
+    var em = $('email').value.trim(), pw = $('pw').value;
+    if(!em || !pw){ msg('authMsg','ng','メールアドレスとパスワードを入れてください。'); return; }
+    $('btnLogin').disabled = true;
+    msg('authMsg','info','ログインしています…');
+    sb.auth.signInWithPassword({ email:em, password:pw }).then(function(res){
+      $('btnLogin').disabled = false;
+      if(res.error){
+        msg('authMsg','ng','ログインできませんでした。<br>メールアドレスかパスワードをご確認ください。<br>' +
+                           '<span style="font-size:14px">（' + esc(res.error.message) + '）</span>');
+        return;
+      }
+      hide('authMsg');
+      onLoggedIn();
+    });
+  });
+
+  $('btnSignup').addEventListener('click', function(){
+    var em = $('email').value.trim(), pw = $('pw').value;
+    if(!em || pw.length < 6){
+      msg('authMsg','ng','メールアドレスと、6文字以上のパスワードを入れてください。'); return;
+    }
+    $('btnSignup').disabled = true;
+    msg('authMsg','info','アカウントを作っています…');
+    sb.auth.signUp({ email:em, password:pw }).then(function(res){
+      $('btnSignup').disabled = false;
+      if(res.error){
+        msg('authMsg','ng','作れませんでした。<br><span style="font-size:14px">（' +
+                            esc(res.error.message) + '）</span>');
+        return;
+      }
+      if(res.data && res.data.session){
+        msg('authMsg','ok','アカウントを作りました。そのまま使えます。');
+        onLoggedIn();
+      } else {
+        msg('authMsg','ok','アカウントを作りました。<br>メールに確認リンクが届いていたら、それを押してから「ログインする」を押してください。');
+      }
+    });
+  });
+
+  $('btnLogout').addEventListener('click', function(){
+    sb.auth.signOut().then(function(){ location.reload(); });
+  });
+
+  function onLoggedIn(){
+    $('authCard').style.display = 'none';
+    $('appArea').style.display = 'block';
+    $('ntDate').value = todayJST();
+    loadMap();
+    loadDraft();
+  }
+
+  // ================= マップと旅行の読み込み =================
+
+  // 家族に配るURLを組み立てて画面に出す。
+  // 合言葉はこのファイルには書かず、ログイン後にデータベースから取り出します。
+  function setupShareUrl(token){
+    var url = location.origin + location.pathname.replace(/admin\.html$/,'index.html') +
+              '?t=' + token;
+    $('shareUrl').textContent = url;
+    $('btnOpen').onclick = function(){ window.open(url, '_blank'); };
+    $('btnCopy').onclick = function(){
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(function(){
+          msg('copyMsg','ok','コピーしました。LINEなどに貼りつけて送ってください。');
+        }, function(){
+          msg('copyMsg','ng','コピーできませんでした。上のURLを長押しして選んでコピーしてください。');
+        });
+      } else {
+        msg('copyMsg','ng','この端末では自動コピーができません。上のURLを長押しして選んでコピーしてください。');
+      }
+    };
+  }
+
+  function loadMap(){
+    sb.from('maps').select('id,title,subtitle,share_token')
+      .order('created_at', { ascending:true }).limit(1)
+      .then(function(res){
+        if(res.error || !res.data || !res.data.length){
+          msg('tripMsg','ng','マップのデータが見つかりませんでした。<br>' +
+                             'Supabase で migration-japan.sql を実行したかご確認ください。');
+          return;
+        }
+        appMap = res.data[0];
+        setupShareUrl(appMap.share_token);
+        loadTrips();
+      });
+  }
+
+  function loadTrips(keepId){
+    sb.from('trips').select('id,title,subtitle,area_name,status,started_at')
+      .eq('map_id', appMap.id)
+      .order('created_at', { ascending:false })
+      .then(function(res){
+        if(res.error){
+          msg('tripMsg','ng','旅行の一覧を読み込めませんでした：' + esc(res.error.message)); return;
+        }
+        trips = res.data || [];
+        if(!trips.length){
+          trip = null;
+          $('tripSel').innerHTML = '';
+          $('tripName').textContent = 'まだ旅行がありません';
+          $('tripWhere').textContent = '下の「＋ 新しい旅行を始める」から作ってください。';
+          $('btnFinish').style.display = 'none';
+          $('btnResume').style.display = 'none';
+          return;
+        }
+
+        var want = keepId || (function(){ try{ return localStorage.getItem(LAST_TRIP); }catch(e){ return null; } })();
+        var live = trips.filter(function(t){ return t.status === 'active'; })[0];
+        var found = trips.filter(function(t){ return t.id === want; })[0];
+        trip = found || live || trips[0];
+
+        $('tripSel').innerHTML = trips.map(function(t){
+          return '<option value="' + esc(t.id) + '"' + (t.id === trip.id ? ' selected' : '') + '>' +
+                 esc(t.title) + (t.status === 'active' ? '（冒険中）' : '') + '</option>';
+        }).join('');
+
+        showTrip();
+      });
+  }
+
+  function showTrip(){
+    if(!trip) return;
+    try{ localStorage.setItem(LAST_TRIP, trip.id); }catch(e){}
+    var chip = trip.status === 'active'
+      ? '<span class="chip">冒険中</span>'
+      : '<span class="chip done">終わり</span>';
+    $('tripName').innerHTML = esc(trip.title) + chip;
+    $('tripWhere').textContent =
+      [trip.area_name, trip.subtitle, trip.started_at ? jday(trip.started_at) + ' 出発' : '']
+      .filter(Boolean).join('　/　');
+    $('btnFinish').style.display = trip.status === 'active' ? 'block' : 'none';
+    $('btnResume').style.display = trip.status === 'active' ? 'none'  : 'block';
+    hide('tripMsg');
+    if($('listCard').style.display !== 'none') loadList();
+  }
+
+  $('tripSel').addEventListener('change', function(){
+    var id = this.value;
+    trip = trips.filter(function(t){ return t.id === id; })[0] || trip;
+    showTrip();
+  });
+
+  // ---- 新しい旅行を始める ----
+  $('btnNewTrip').addEventListener('click', function(){
+    if(!appMap){ msg('newTripMsg','ng','マップを読み込めていません。画面を更新してください。'); return; }
+    var title = $('ntTitle').value.trim();
+    if(!title){ msg('newTripMsg','ng','旅行の名前を入れてください。'); return; }
+    var d = $('ntDate').value || todayJST();
+
+    $('btnNewTrip').disabled = true;
+    msg('newTripMsg','info','旅行を作っています…');
+
+    // いま冒険中の旅行があれば、先に「終わり」にします
+    sb.from('trips').update({ status:'completed', ended_at:new Date().toISOString() })
+      .eq('map_id', appMap.id).eq('status','active')
+      .then(function(){
+        return sb.from('trips').insert({
+          map_id: appMap.id,
+          title: title,
+          subtitle: $('ntSub').value.trim() || null,
+          area_name: $('ntArea').value.trim() || null,
+          status: 'active',
+          started_at: d + 'T00:00:00+09:00'
+        }).select('id');
+      })
+      .then(function(res){
+        $('btnNewTrip').disabled = false;
+        if(res.error){
+          msg('newTripMsg','ng','作れませんでした：' + esc(res.error.message)); return;
+        }
+        var newId = res.data && res.data[0] ? res.data[0].id : null;
+        msg('newTripMsg','ok','「' + esc(title) + '」を始めました。写真はこの旅行に入ります。');
+        $('ntTitle').value = ''; $('ntArea').value = ''; $('ntSub').value = '';
+        loadTrips(newId);
+      })
+      .catch(function(e){
+        $('btnNewTrip').disabled = false;
+        msg('newTripMsg','ng','作れませんでした：' + esc(e.message));
+      });
+  });
+
+  function setStatus(st){
+    if(!trip) return;
+    msg('tripMsg','info','変えています…');
+    var patch = { status: st };
+    if(st === 'completed') patch.ended_at = new Date().toISOString();
+    if(st === 'active')    patch.ended_at = null;
+    sb.from('trips').update(patch).eq('id', trip.id).then(function(res){
+      if(res.error){ msg('tripMsg','ng','変えられませんでした：' + esc(res.error.message)); return; }
+      msg('tripMsg','ok', st === 'completed'
+        ? 'この旅行を「終わり」にしました。家族の画面では日本地図が最初に出るようになります。'
+        : 'この旅行を「冒険中」にしました。家族の画面ではこの旅行がすぐ開きます。');
+      loadTrips(trip.id);
+    });
+  }
+  $('btnFinish').addEventListener('click', function(){ setStatus('completed'); });
+  $('btnResume').addEventListener('click', function(){ setStatus('active'); });
+
+  // ================= 写真の縮小とEXIF除去 =================
+  // canvas に描き直すことで、撮影日時や位置などのEXIF情報は自動的に消えます。
+  function shrink(file, maxEdge, quality){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var s = Math.min(1, maxEdge / Math.max(w, h));
+          w = Math.max(1, Math.round(w * s));
+          h = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          var ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          c.toBlob(function(blob){
+            if(!blob){ reject(new Error('画像を変換できませんでした')); return; }
+            resolve(blob);
+          }, 'image/jpeg', quality);
+        }catch(e){ URL.revokeObjectURL(url); reject(e); }
+      };
+      img.onerror = function(){
+        URL.revokeObjectURL(url);
+        reject(new Error('この写真は読み込めませんでした'));
+      };
+      img.src = url;
+    });
+  }
+
+  $('file').addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    picked.full = picked.thumb = null;
+    $('preview').style.display = 'none';
+    if(!f) return;
+    if(f.type && f.type.indexOf('image/') !== 0){
+      msg('postMsg','ng','画像ファイルを選んでください。'); return;
+    }
+    msg('postMsg','info','写真を準備しています…');
+    shrink(f, 1600, 0.82)
+      .then(function(full){
+        picked.full = full;
+        return shrink(f, 480, 0.72);
+      })
+      .then(function(th){
+        picked.thumb = th;
+        $('preview').src = URL.createObjectURL(picked.full);
+        $('preview').style.display = 'block';
+        msg('postMsg','ok','写真の準備ができました（' +
+            Math.round(picked.full.size/1024) + 'KB・撮影情報は消してあります）。');
+      })
+      .catch(function(e){
+        msg('postMsg','ng','写真を準備できませんでした。<br>別の写真でお試しください。<br>' +
+                           '<span style="font-size:14px">（' + esc(e.message) + '）</span>');
+      });
+  });
+
+  // ================= 現在地 =================
+  $('btnGeo').addEventListener('click', function(){
+    if(!navigator.geolocation){
+      msg('geoMsg','ng','この端末では現在地を取れません。下の欄に緯度・経度を手で入れてください。'); return;
+    }
+    $('btnGeo').disabled = true;
+    msg('geoMsg','info','現在地を調べています…（数秒かかります）');
+    navigator.geolocation.getCurrentPosition(function(pos){
+      $('btnGeo').disabled = false;
+      $('lat').value = pos.coords.latitude.toFixed(6);
+      $('lng').value = pos.coords.longitude.toFixed(6);
+      window.__acc = pos.coords.accuracy || null;
+      saveDraft();
+      msg('geoMsg','ok','現在地を取得しました（誤差およそ ' +
+          Math.round(pos.coords.accuracy || 0) + ' m）。');
+    }, function(err){
+      $('btnGeo').disabled = false;
+      var t;
+      if(err.code === 1){
+        t = '位置情報の利用が許可されていません。<br>' +
+            'iPhoneの「設定」→「プライバシーとセキュリティ」→「位置情報サービス」で、' +
+            'お使いのブラウザを許可してから、もう一度お試しください。';
+      } else if(err.code === 2){
+        t = '現在地が分かりませんでした。電波の届く場所で、もう一度お試しください。';
+      } else if(err.code === 3){
+        t = '現在地の取得に時間がかかりすぎました。もう一度お試しください。';
+      } else {
+        t = '現在地を取得できませんでした。';
+      }
+      msg('geoMsg','ng', t + '<br>急ぐときは、下の欄に緯度・経度を手で入れても投稿できます。');
+    }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+  });
+
+  // ================= 投稿 =================
+  function upload(blob, name){
+    return sb.storage.from('photos').upload(name, blob, {
+      contentType:'image/jpeg', cacheControl:'31536000', upsert:false
+    }).then(function(res){
+      if(res.error) throw new Error('写真の保存に失敗：' + res.error.message);
+      return CFG.SUPABASE_URL + '/storage/v1/object/public/photos/' + name;
+    });
+  }
+
+  $('btnPost').addEventListener('click', function(){
+    if(sending) return;
+    if(!trip){ msg('postMsg','ng','旅行が選ばれていません。上で旅行を選ぶか、新しく始めてください。'); return; }
+    if(!picked.full){ msg('postMsg','ng','写真を選んでください。'); return; }
+    var lat = parseFloat($('lat').value), lng = parseFloat($('lng').value);
+    if(isNaN(lat) || isNaN(lng)){
+      msg('postMsg','ng','場所が入っていません。「現在地を取得する」を押すか、緯度・経度を入れてください。'); return;
+    }
+    if(lat < -90 || lat > 90 || lng < -180 || lng > 180){
+      msg('postMsg','ng','緯度・経度の値が正しくありません。'); return;
+    }
+
+    sending = true;
+    $('btnPost').disabled = true;
+    $('btnPost').textContent = '投稿しています…';
+    msg('postMsg','info','① 写真を送っています…');
+
+    var target = trip;
+    var base = target.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    var fullUrl, thumbUrl;
+
+    upload(picked.full, base + '.jpg')
+      .then(function(u){
+        fullUrl = u;
+        msg('postMsg','info','② 小さい写真を送っています…');
+        return upload(picked.thumb, base + '_s.jpg');
+      })
+      .then(function(u){
+        thumbUrl = u;
+        msg('postMsg','info','③ 記録を書き込んでいます…');
+        return sb.from('posts').insert({
+          trip_id: target.id,
+          sequence_number: 0,           // 0 を入れると自動で連番が付きます
+          image_url: fullUrl,
+          thumbnail_url: thumbUrl,
+          comment: $('cmt').value.trim() || null,
+          place_name: $('place').value.trim() || null,
+          latitude: lat,
+          longitude: lng,
+          location_accuracy: window.__acc || null,
+          posted_at: new Date().toISOString()
+        }).select('sequence_number');
+      })
+      .then(function(res){
+        if(res.error) throw new Error(res.error.message);
+        var n = res.data && res.data[0] ? res.data[0].sequence_number : '';
+        sending = false;
+        $('btnPost').disabled = false;
+        $('btnPost').textContent = 'この内容で投稿する';
+        msg('postMsg','ok','投稿できました！　「' + esc(target.title) + '」の ' + n +
+                           '番目の記録として、家族の地図に出ています。');
+        // 成功したときだけ入力を消します
+        $('file').value = ''; $('preview').style.display='none';
+        $('place').value = ''; $('cmt').value = ''; $('cmtCount').textContent = '0';
+        picked.full = picked.thumb = null;
+        clearDraft();
+      })
+      .catch(function(e){
+        sending = false;
+        $('btnPost').disabled = false;
+        $('btnPost').textContent = 'もう一度、投稿する';
+        msg('postMsg','ng','投稿できませんでした。<br>' +
+            '入力した内容はそのまま残してあります。電波のよい場所で、もう一度ボタンを押してください。<br>' +
+            '<span style="font-size:14px">（詳細：' + esc(e.message) + '）</span>');
+      });
+  });
+
+  // ================= 一覧・編集・削除 =================
+  $('tabPost').addEventListener('click', function(){
+    $('tabPost').classList.add('on'); $('tabList').classList.remove('on');
+    $('postCard').style.display = 'block'; $('listCard').style.display = 'none';
+  });
+  $('tabList').addEventListener('click', function(){
+    $('tabList').classList.add('on'); $('tabPost').classList.remove('on');
+    $('listCard').style.display = 'block'; $('postCard').style.display = 'none';
+    loadList();
+  });
+  $('btnReload').addEventListener('click', loadList);
+
+  function loadList(){
+    if(!trip){ msg('listMsg','ng','旅行が選ばれていません。'); return; }
+    msg('listMsg','info','読み込んでいます…');
+    sb.from('posts')
+      .select('id,sequence_number,thumbnail_url,image_url,place_name,comment,posted_at')
+      .eq('trip_id', trip.id).order('sequence_number', { ascending:false })
+      .then(function(res){
+        if(res.error){ msg('listMsg','ng','読み込めませんでした：' + esc(res.error.message)); return; }
+        hide('listMsg');
+        var rows = res.data || [];
+        if(!rows.length){ $('list').innerHTML = '<p class="hint">この旅行には、まだ投稿がありません。</p>'; return; }
+        $('list').innerHTML = rows.map(function(p){
+          return '<div class="item" data-id="' + p.id + '">' +
+            '<div class="no">' + p.sequence_number + '</div>' +
+            '<img src="' + esc(p.thumbnail_url || p.image_url) + '" alt="">' +
+            '<div class="b">' +
+              '<div class="p">' + esc(p.place_name || '（場所名なし）') + '</div>' +
+              '<div class="c">' + esc(p.comment || '') + '</div>' +
+              '<div class="d">' + esc(jtime(p.posted_at)) + '</div>' +
+              '<div class="acts">' +
+                '<button class="sub" data-act="edit">直す</button>' +
+                '<button class="danger" data-act="del">消す</button>' +
+              '</div>' +
+            '</div></div>';
+        }).join('');
+        $('list').querySelectorAll('button').forEach(function(b){
+          b.addEventListener('click', function(){
+            var box = b.closest('.item');
+            var id  = box.getAttribute('data-id');
+            var row = rows.filter(function(r){ return r.id === id; })[0];
+            if(b.getAttribute('data-act') === 'del') doDelete(row);
+            else doEdit(row);
+          });
+        });
+      });
+  }
+
+  function doEdit(row){
+    var place = window.prompt('場所の名前を直してください', row.place_name || '');
+    if(place === null) return;
+    var cmt = window.prompt('ひとことを直してください（150文字まで）', row.comment || '');
+    if(cmt === null) return;
+    if(cmt.length > 150){ msg('listMsg','ng','ひとことは150文字までです。'); return; }
+    msg('listMsg','info','直しています…');
+    sb.from('posts').update({
+      place_name: place.trim() || null,
+      comment: cmt.trim() || null
+    }).eq('id', row.id).then(function(res){
+      if(res.error){ msg('listMsg','ng','直せませんでした：' + esc(res.error.message)); return; }
+      msg('listMsg','ok','直しました。');
+      loadList();
+    });
+  }
+
+  function doDelete(row){
+    if(!window.confirm(row.sequence_number + '番の投稿を消します。よろしいですか？\nこの操作は取り消せません。')) return;
+    msg('listMsg','info','消しています…');
+    sb.from('posts').delete().eq('id', row.id).then(function(res){
+      if(res.error){ msg('listMsg','ng','消せませんでした：' + esc(res.error.message)); return; }
+      msg('listMsg','ok','消しました。');
+      loadList();
+    });
+  }
+
+  // ================= 起動時 =================
+  sb.auth.getSession().then(function(res){
+    if(res.data && res.data.session) onLoggedIn();
+  });
+})();
+</script>
+</body>
+</html>
